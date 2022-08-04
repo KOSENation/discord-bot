@@ -1,0 +1,31 @@
+{
+  "name": "kosenation_bot_2022",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UnknownSP/KOSENation_bot_2022.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UnknownSP/KOSENation_bot_2022/issues"
+  },
+  "homepage": "https://github.com/UnknownSP/KOSENation_bot_2022#readme",
+  "dependencies": {
+    "canvas": "^2.9.3",
+    "discord.js": "^14.0.3",
+    "dotenv": "^16.0.1",
+    "events": "^3.3.0",
+    "https": "^1.0.0",
+    "mysql": "^2.18.1",
+    "pm2": "^5.2.0",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6",
+    "snekfetch": "^4.0.4"
+  }
+}
