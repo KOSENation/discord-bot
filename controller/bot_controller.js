@@ -4,7 +4,8 @@ const Canvas = require('canvas');
 const DB = require("./DB_controller")
 const Err = require("./error_handler")
 const API = require("./request_controller")
-const JankenMess = require("./message_handler")
+const JankenMess = require("./message_handler");
+const { group } = require('console');
 if(process.argv[2] == undefined || process.argv[2] == "dev"){
     const ENV_PATH = path.join(__dirname, '.env_dev');
     require("dotenv").config({path: ENV_PATH})
@@ -32,6 +33,10 @@ exports.interction = async function(interaction, client){
     console.log("interactionCreate")
     
     if(interaction.commandName === 'echo') {
+        if(interaction.options.getString("復唱文字") == null){
+            await interaction.reply("nullやぞ").catch(console.error);
+            return
+        }
         await interaction.reply(interaction.options.getString("復唱文字")).catch(console.error);
         return 
     }
@@ -43,6 +48,11 @@ exports.interction = async function(interaction, client){
 
     if(interaction.commandName === 'janken_init'){
         await jankenInit(interaction)
+        return
+    }
+
+    if(interaction.commandName === 'group_results'){
+        await groupResultSender(interaction, client)
         return
     }
 
@@ -956,6 +966,41 @@ async function sudoHandler(interaction, client){
     }
     await interaction.reply("complete").catch(console.error)
     return
+}
+
+async function groupResultSender(interaction, client){
+    const AllorSet = interaction.options.getString("表示タイプ")
+    const group_name = interaction.options.getString("グループ名")
+    if(AllorSet == "set_group" && group_name == null){
+        interaction.reply(Err.error_handler(400))
+        return
+    }
+    getJson_GD = await API.getGroupData()
+    if(!getJson_GD){
+        await interaction.reply(Err.error_handler(405))
+        return
+    }
+    let send_str = ""
+    for(let i=0; i<getJson_GD.groups.length; i++){
+        if(AllorSet == "set_group"){
+            if(getJson_GD.groups[i].group_name != group_name) continue
+        }
+        getJson_GD.groups[i].teams.sort(function(a,b){ //一旦ポイントでソート
+            if(a.rank > b.rank){
+                return 1
+            }else{
+                return -1
+            }
+        })
+        send_str += "グループ名 : " + getJson_GD.groups[i].group_name + "\n"
+    }
+    if(send_str == ""){
+        await interaction.reply(Err.error_handler(410))
+        return
+    }
+    await interaction.reply(send_str)
+
+    console.log(getJson_GD.groups[0].teams)
 }
 
 exports.addedMember = async function(guildMember){

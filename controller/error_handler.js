@@ -53,6 +53,15 @@ exports.error_handler = function(err_code){
         case 320:
             resStr = "[Err:320] 権限与奪の引数を入力してください"
             break;
+        case 400:
+            resStr = "[Err:400] グループ指定の場合はグループ名のオプションを選択してください"
+            break;
+        case 405:
+            resStr = "[Err:405] グループデータが存在していません。"
+            break;
+        case 410:
+            resStr = "[Err:410] 指定グループのデータが存在していません。"
+            break;
         case 700:
             resStr = "[Err:700] データベース操作時のエラー"
             break;

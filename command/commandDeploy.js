@@ -36,6 +36,26 @@ const commands = [
     .setName('sudo')
     .setDescription('管理者権限を得られます')
     .addBooleanOption(option => option.setName('与奪').setDescription('trueの場合は権限付与、falseの場合は権限剥奪')),
+    new SlashCommandBuilder()
+    .setName('group_results')
+    .setDescription('グループマッチの結果を表示します')
+    .addStringOption(option =>option
+			.setName('表示タイプ')
+			.setDescription('全グループorグループ指定のどちらで結果を得るか選択できます')
+            .setRequired(true)
+            .addChoices(
+				{ name: '全グループ', value: 'all_group' },
+				{ name: 'グループ指定', value: 'set_group' },
+			))
+    .addStringOption(option =>option
+        .setName('グループ名')
+        .setDescription('グループ指定を選択した場合、グループの指定を行ってください')
+        .addChoices(
+            { name: 'A', value: 'A' },
+            { name: 'B', value: 'B' },
+            { name: 'C', value: 'C' },
+            { name: 'D', value: 'D' },
+        ))
 ]
     .map(command => command.toJSON());
 const rest = new REST({ version: '9' }).setToken(token);
