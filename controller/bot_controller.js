@@ -15,6 +15,9 @@ if(process.argv[2] == undefined || process.argv[2] == "dev"){
 }else if(process.argv[2] == "pro"){
     const ENV_PATH = path.join(__dirname, '.env_product');
     require("dotenv").config({path: ENV_PATH})
+}else if(process.argv[2] == "realkose"){
+    const ENV_PATH = path.join(__dirname, '.env_realkose');
+    require("dotenv").config({path: ENV_PATH})
 }
 console.log(process.argv[2])
 
@@ -944,19 +947,19 @@ async function sudoHandler(interaction, client){
         await interaction.reply(Err.error_handler(300)).catch(console.error);
         return
     }
-    const _GiveTake = interaction.options.getBoolean("与奪")
+    const _GiveTake = interaction.options.getString("option")
     if(_GiveTake == undefined || _GiveTake == null){
         await interaction.reply(Err.error_handler(320)).catch(console.error);
         return
     }
-    if(_GiveTake){
+    if(_GiveTake == "su"){
         try {
             await interaction.member.roles.add(process.env.ADMIN_ROLE_ID)
         } catch (error) {
             interaction.reply(Err.error_handler(310)).catch(console.error)
             console.log(error)
         }
-    }else{
+    }else if(_GiveTake == "exit"){
         try {
             await  interaction.member.roles.remove(process.env.ADMIN_ROLE_ID)
         } catch (error) {
@@ -980,27 +983,52 @@ async function groupResultSender(interaction, client){
         await interaction.reply(Err.error_handler(405))
         return
     }
-    let send_str = ""
-    for(let i=0; i<getJson_GD.groups.length; i++){
-        if(AllorSet == "set_group"){
-            if(getJson_GD.groups[i].group_name != group_name) continue
-        }
-        getJson_GD.groups[i].teams.sort(function(a,b){ //一旦ポイントでソート
-            if(a.rank > b.rank){
-                return 1
-            }else{
-                return -1
-            }
-        })
-        send_str += "グループ名 : " + getJson_GD.groups[i].group_name + "\n"
-    }
-    if(send_str == ""){
-        await interaction.reply(Err.error_handler(410))
-        return
-    }
-    await interaction.reply(send_str)
+    //let send_str = ""
+    //for(let i=0; i<getJson_GD.groups.length; i++){
+    //    if(AllorSet == "set_group"){
+    //        if(getJson_GD.groups[i].group_name != group_name) continue
+    //    }
+    //    getJson_GD.groups[i].teams.sort(function(a,b){ //一旦ポイントでソート
+    //        if(a.rank > b.rank){
+    //            return 1
+    //        }else{
+    //            return -1
+    //        }
+    //    })
+    //    send_str += "グループ名 : " + getJson_GD.groups[i].group_name + "\n"
+    //}
+    //if(send_str == ""){
+    //    await interaction.reply(Err.error_handler(410))
+    //    return
+    //}
+    //await interaction.reply(send_str)
+
+    const attachment = await createGroupResultImage("A","A")
+    await client.channels.cache.get(interaction.channelId).send({files:[attachment]})
 
     console.log(getJson_GD.groups[0].teams)
+}
+
+async function createGroupResultImage(group_name,teams){
+    const width = 1920
+    const height = 1080
+    const canvas = Canvas.createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    const font_size = 70
+
+    ctx.font = font_size + "px 'Sans'";
+    const group = group_name + "グループ"
+    const group_size = ctx.measureText(group);
+
+    ctx.fillStyle = "#ebebeb";  // 塗りつぶしの色
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0D1317';
+    ctx.fillText(group, canvas.width/2.0 - group_size.width/2.0 ,  group_size.actualBoundingBoxAscent-group_size.actualBoundingBoxDescent + 20);
+    ctx.fillText("　順位　薔薇百合薔薇百　Point　得失R　試合数", 0,  group_size.actualBoundingBoxAscent-group_size.actualBoundingBoxDescent + 100);
+    const attachment = await new AttachmentBuilder(canvas.toBuffer(), 'Result-image.png');
+    
+    return attachment
 }
 
 exports.addedMember = async function(guildMember){
