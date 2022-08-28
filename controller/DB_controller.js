@@ -10,6 +10,9 @@ if(process.argv[2] == undefined || process.argv[2] == "dev"){
 }else if(process.argv[2] == "pro"){
     const ENV_PATH = path.join(__dirname, '.env_product');
     require("dotenv").config({path: ENV_PATH})
+}else if(process.argv[2] == "realkose"){
+    const ENV_PATH = path.join(__dirname, '.env_realkose');
+    require("dotenv").config({path: ENV_PATH})
 }
 
 const pool_connection = mysql.createPool({
