@@ -38,6 +38,27 @@ exports.getGroupMatchData = async function(match_id){
     return returnBody
 }
 
+exports.getTournamentMatchData = async function(match_id){
+    const options = {
+        method : 'GET',
+        url: process.env.API_URL + "/tournamentmatchdata/" + match_id,
+        headers: {
+            "content-type": "application/json",
+            "apikey": process.env.API_KEY
+        },
+        json: true
+    }
+    let returnBody
+    await request(options).then(function (body) {
+        returnBody = body
+    })
+    if(returnBody.error_code != undefined){
+        console.log(returnBody.error_code,returnBody.error_message)
+        return 0
+    }
+    return returnBody
+}
+
 exports.getTeamDataByID = async function(team_id){
     const options = {
         method : 'GET',

@@ -371,7 +371,8 @@ async function BanByLoser_handler(MessageReaction, user, client, order){
                 set_data.firstBanByLoser = i+1
                 results_update = await DB.DB_query("UPDATE `janken` set ? WHERE `firstBanByLoser_MessID` = " + MessageReaction.message.id, set_data)
             }else if(order == 2){
-                set_data.status = "map3_pickSelect"
+                //set_data.status = "map3_pickSelect"
+                set_data.status = "map3_AtkDefPick"
                 set_data.secondBanByLoser = i+1
                 results_update = await DB.DB_query("UPDATE `janken` set ? WHERE `secondBanByLoser_MessID` = " + MessageReaction.message.id, set_data)
             }
@@ -389,23 +390,53 @@ async function BanByLoser_handler(MessageReaction, user, client, order){
     }
     
     let sent_message
+    let map3_map
+    let winner_str = ""
+    let loser_str = ""
     if(order == 1){
         sent_message = await sendDM(client,set_data.jankenWinner_ID,JankenMess.message_handler(140))
         await sendDM(client,user.id,JankenMess.message_handler(141))
         set_data.map1_pickSelect_MessID = sent_message.id
         results_update = await DB.DB_query("UPDATE `janken` set ? WHERE `firstBanByLoser_MessID` = " + MessageReaction.message.id, set_data)
     }else if(order == 2){
-        sent_message = await sendDM(client,set_data.jankenWinner_ID,JankenMess.message_handler(200))
-        await sendDM(client,user.id,JankenMess.message_handler(201))
-        set_data.map3_pickSelect_MessID = sent_message.id
+        for(let i=0; i<map_num.length; i++){
+            if(i==set_data.firstBanByWinner-1 || i==set_data.firstBanByLoser-1 || i==set_data.map1_mapPick-1 || i==set_data.map2_mapPick-1 || i==set_data.secondBanByWinner-1 || i==set_data.secondBanByLoser-1){
+                continue
+            }
+            map3_map = map_name[i]
+            set_data["map3_mapPick"] = i+1
+        }
+        //sent_message = await sendDM(client,set_data.jankenWinner_ID,JankenMess.message_handler(200))
+        winner_str += JankenMess.message_handler(200)
+        loser_str += JankenMess.message_handler(201)
+        winner_str += "**第3マップ " + map3_map + "** となります。"
+        loser_str += "**第3マップ " + map3_map + "** となります。"
+        winner_str += JankenMess.message_handler(205)
+        loser_str += JankenMess.message_handler(206)
+        //set_data.map3_pickSelect_MessID = sent_message.id
+        set_data["map3_pickSelect"] = pick_status[1]
+        set_data["map3_mapSelector_id"] = set_data.jankenLoser_ID
+        set_data["map3_AtkDefSelector_id"] = set_data.jankenWinner_ID
+        for(let i=0; i<AtkDef_char.length; i++){
+            winner_str += AtkDef_char[i] + " " + AtkDef_name[i] + "\n"
+        }
+        sent_message = await sendDM(client,set_data["map3_AtkDefSelector_id"],winner_str)
+        await sendDM(client,user.id,loser_str)
+        set_data["map3_AtkDefPick_MessID"] = sent_message.id
         results_update = await DB.DB_query("UPDATE `janken` set ? WHERE `secondBanByLoser_MessID` = " + MessageReaction.message.id, set_data)
     }
     if(!results_update){
         await interaction.reply(Err.error_handler(700))
         return
     }
-    for(let i=0; i<pick_num.length; i++){
-        await setReaction(sent_message,pick_num[i])
+    if(order == 1){
+        for(let i=0; i<pick_num.length; i++){
+            await setReaction(sent_message,pick_num[i])
+        }
+    }else if(order == 2){
+        for(let i=0; i<AtkDef_char.length; i++){
+            await setReaction(sent_message,AtkDef_char[i])
+        }
     }
 }
 
@@ -696,7 +727,11 @@ async function resultMessage_handler(client, data, order){
     let send_str = JankenMess.message_handler(0)
     send_str += "**第"+order+"マップ**\n"
     send_str += map_name[data["map"+order+"_mapPick"]-1]
-    send_str += "  (Selected By "+"<@"+data["map"+order+"_mapSelector_id"]+">)\n"
+    if(order == 3){
+        send_str += "\n"
+    }else{
+        send_str += "  (Selected By "+"<@"+data["map"+order+"_mapSelector_id"]+">)\n"
+    }
     if(data["map"+order+"_AtkDefPick"] == "Attacker"){
         send_str += "Attacker Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+">\n"
         send_str += "Defender Start -> <@"+data["map"+order+"_mapSelector_id"]+">\n"
@@ -721,7 +756,11 @@ async function startJanken(interaction, client){
             await interaction.reply(Err.error_handler(110))
             return
         }
-        getJson_GM = await API.getGroupMatchData(matchId)
+        if(matchId.indexOf("L") != -1 || matchId.indexOf("U") != -1){
+            getJson_GM = await API.getTournamentMatchData(matchId)
+        }else{
+            getJson_GM = await API.getGroupMatchData(matchId)
+        }
         if(!getJson_GM){
             await interaction.reply(Err.error_handler(115))
             return
@@ -739,7 +778,7 @@ async function startJanken(interaction, client){
             await interaction.reply(Err.error_handler(125))
             return
         }
-        if(getJson_TD_1.team.discord_id == null || getJson_TD_2.team.discord_id == null){
+        if(getJson_TD_1.team.discord_id == null || getJson_TD_2.team.discord_id == null || getJson_TD_1.team.discord_id == 0 || getJson_TD_2.team.discord_id == 0){
             await interaction.reply(Err.error_handler(130))
             return
         }
