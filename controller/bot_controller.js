@@ -27,6 +27,7 @@ const pick_name = ["マップ選択権","攻守選択権"]
 const pick_status = ["Map","AtkDef"]
 const map_num = ["1⃣","2⃣","3⃣","4⃣","5⃣","6⃣","7⃣"]
 const map_name = ["アセント","バインド","ヘイブン","アイスボックス","ブリーズ","フラクチャー","パール"]
+const map_name_ENG = ["ASCENT","BIND","HAVEN","ICEBOX","BREEZE","FRACTURE","PEARL"]
 const AtkDef_char = ["🇦","🇩"]
 const AtkDef_name = ["Attacker Start","Defender Start"]
 const AtkDef_status = ["Attacker","Defender"]
@@ -371,7 +372,6 @@ async function BanByLoser_handler(MessageReaction, user, client, order){
                 set_data.firstBanByLoser = i+1
                 results_update = await DB.DB_query("UPDATE `janken` set ? WHERE `firstBanByLoser_MessID` = " + MessageReaction.message.id, set_data)
             }else if(order == 2){
-                //set_data.status = "map3_pickSelect"
                 set_data.status = "map3_AtkDefPick"
                 set_data.secondBanByLoser = i+1
                 results_update = await DB.DB_query("UPDATE `janken` set ? WHERE `secondBanByLoser_MessID` = " + MessageReaction.message.id, set_data)
@@ -719,8 +719,74 @@ async function PickComplete_handler(number, client){
             send_str += "----------------------"
         }
     }
-
     await sendCM(client, set_data.comChannel_ID, send_str)
+
+    let request_json = {}
+    let getJson_GM
+    let getJson_TD_1
+    let getJson_TD_2
+    let user1_id
+    let user2_id
+    let api_return
+    request_json["maps"] = []
+    if(set_data.match_id != null){
+        if(set_data.match_id.indexOf("L") != -1 || set_data.match_id.indexOf("U") != -1){
+            getJson_GM = await API.getTournamentMatchData(set_data.match_id)
+        }else{
+            getJson_GM = await API.getGroupMatchData(set_data.match_id)
+        }
+        getJson_TD_1 = await API.getTeamDataByID(getJson_GM.teams[0].id)
+        getJson_TD_2 = await API.getTeamDataByID(getJson_GM.teams[1].id)
+        if(!getJson_TD_1 || !getJson_TD_2){
+            await sendCM(client, set_data.comChannel_ID, Err.error_handler(125))
+            return
+        }
+        if(getJson_TD_1.team.discord_id == null || getJson_TD_2.team.discord_id == null || getJson_TD_1.team.discord_id == 0 || getJson_TD_2.team.discord_id == 0){
+            await sendCM(client, set_data.comChannel_ID, Err.error_handler(130))
+            return
+        }
+        user1_id = getJson_TD_1.team.discord_id
+        user2_id = getJson_TD_2.team.discord_id
+        for(let i=0; i<set_data.bo; i++){
+            let Attacker_id
+            let Defender_id
+            let team1_AtkDef
+            let team2_AtkDef
+            if(set_data["map"+(i+1)+"_AtkDefPick"] == "Attacker"){
+                Attacker_id = set_data["map"+(i+1)+"_AtkDefSelector_id"]
+                Defender_id = set_data["map"+(i+1)+"_mapSelector_id"]
+            }else if(set_data["map"+(i+1)+"_AtkDefPick"] == "Defender"){
+                Attacker_id = set_data["map"+(i+1)+"_mapSelector_id"]
+                Defender_id = set_data["map"+(i+1)+"_AtkDefSelector_id"]
+            }
+            if(Attacker_id == user1_id){
+                team1_AtkDef = "attacker"
+                team2_AtkDef = "defender"
+            }else if(Attacker_id == user2_id){
+                team1_AtkDef = "defender"
+                team2_AtkDef = "attacker"
+            }
+            request_json.maps[i] = {
+                "number" : (i+1),
+                "name" : map_name_ENG[set_data["map"+(i+1)+"_mapPick"]-1],
+                "teams" : [
+                    {
+                        "id" : getJson_GM.teams[0].id,
+                        "first_side" : team1_AtkDef
+                    },
+                    {
+                        "id" : getJson_GM.teams[1].id,
+                        "first_side" : team2_AtkDef
+                    }
+                ]
+            }
+        }
+        if(set_data.match_id.indexOf("L") != -1 || set_data.match_id.indexOf("U") != -1){
+            api_return = await API.setTournamentMatchData(set_data.match_id, request_json)
+        }else{
+            api_return = await API.setGroupMatchData(set_data.match_id, request_json)
+        }
+    }
 }
 
 async function resultMessage_handler(client, data, order){
@@ -790,7 +856,11 @@ async function startJanken(interaction, client){
         return
     }else{
         if(bo == null){
-            getJson_GM = await API.getGroupMatchData(matchId)
+            if(matchId.indexOf("L") != -1 || matchId.indexOf("U") != -1){
+                getJson_GM = await API.getTournamentMatchData(matchId)
+            }else{
+                getJson_GM = await API.getGroupMatchData(matchId)
+            }
             if(!getJson_GM){
                 await interaction.reply(Err.error_handler(140))
                 return
