@@ -6,6 +6,7 @@ const Err = require("./error_handler")
 const API = require("./request_controller")
 const JankenMess = require("./message_handler");
 const { group } = require('console');
+const e = require('express');
 if(process.argv[2] == undefined || process.argv[2] == "dev"){
     const ENV_PATH = path.join(__dirname, '.env_dev');
     require("dotenv").config({path: ENV_PATH})
@@ -34,6 +35,7 @@ const AtkDef_status = ["Attacker","Defender"]
 const GrandFinal_matchId = "U-3-1"
 const GrandFinal_UpperId = "U-3-1-1"
 const OverTime_ON_matchID = ["L-2-1","U-3-1"]
+const DeciderMap_BO = 3
 
 exports.interction = async function(interaction, client){
     if(!interaction.isChatInputCommand()) return;
@@ -58,8 +60,8 @@ exports.interction = async function(interaction, client){
         return
     }
 
-    if(interaction.commandName === 'group_results'){
-        await groupResultSender(interaction, client)
+    if(interaction.commandName === 'getmatchresult'){
+        await matchResultSender(interaction, client)
         return
     }
 
@@ -196,8 +198,13 @@ async function jankenStart_handler(MessageReaction, user, client){
     set_data = results_selct[0]
     let sent_message_1
     let sent_message_2
+    let send_mess = ""
     if(janken_winner == 0){
-        await sendCM(client,set_data.comChannel_ID,JankenMess.message_handler(0, set_data._isPriority)+janken_hand[set_data.User1_hand]+" <@"+set_data.user1_id+"> \n"+janken_hand[set_data.User2_hand]+" <@"+set_data.user2_id+"> \nあいこです。")
+        send_mess += JankenMess.message_handler(0, set_data._isPriority)
+        send_mess += janken_hand[set_data.User1_hand]+" <@"+set_data.user1_id+"> \n"
+        send_mess += janken_hand[set_data.User2_hand]+" <@"+set_data.user2_id+"> \n"
+        send_mess += "あいこです。"
+        await sendCM(client,set_data.comChannel_ID,send_mess)
         sent_message_1 = await sendDM(client,set_data.user1_id,JankenMess.message_handler(120, set_data._isPriority))
         sent_message_2 = await sendDM(client,set_data.user2_id,JankenMess.message_handler(120, set_data._isPriority))
         set_data.waitUser1_hand_MessID = sent_message_1.id
@@ -225,7 +232,15 @@ async function jankenStart_handler(MessageReaction, user, client){
             set_data.jankenWinner_ID = set_data.user2_id
             set_data.jankenLoser_ID = set_data.user1_id
         }
-        await sendCM(client,set_data.comChannel_ID,JankenMess.message_handler(0, set_data._isPriority)+janken_hand[set_data.User1_hand]+" <@"+set_data.user1_id+"> \n"+janken_hand[set_data.User2_hand]+" <@"+set_data.user2_id+"> \n<@"+set_data.jankenWinner_ID+"> の勝利です。")
+        send_mess += JankenMess.message_handler(0, set_data._isPriority)
+        send_mess += janken_hand[set_data.User1_hand]+" <@"+set_data.user1_id+"> \n"
+        send_mess += janken_hand[set_data.User2_hand]+" <@"+set_data.user2_id+"> \n"
+        if(set_data.jankenWinner_ID == set_data.user1_id){
+            send_mess += "<@"+set_data.jankenWinner_ID+"> "+ set_data.user1_TeamName +" \nの勝利です。"
+        }else if(set_data.jankenWinner_ID == set_data.user2_id){
+            send_mess += "<@"+set_data.jankenWinner_ID+"> "+ set_data.user2_TeamName +" \nの勝利です。"
+        }
+        await sendCM(client,set_data.comChannel_ID,send_mess)
         sent_message_1 = await sendDM(client,set_data.jankenWinner_ID,JankenMess.message_handler(130, set_data._isPriority))
         sent_message_2 = await sendDM(client,set_data.jankenLoser_ID,JankenMess.message_handler(131, set_data._isPriority))
         set_data.firstBanByWinner_MessID = sent_message_1.id
@@ -766,6 +781,7 @@ async function PickComplete_handler(number, client){
             let Defender_id
             let team1_AtkDef
             let team2_AtkDef
+            let map_selector_id
             if(set_data["map"+(i+1)+"_AtkDefPick"] == "Attacker"){
                 Attacker_id = set_data["map"+(i+1)+"_AtkDefSelector_id"]
                 Defender_id = set_data["map"+(i+1)+"_mapSelector_id"]
@@ -780,9 +796,24 @@ async function PickComplete_handler(number, client){
                 team1_AtkDef = "defender"
                 team2_AtkDef = "attacker"
             }
+            if((set_data.bo == DeciderMap_BO) && (i == set_data.bo-1)){
+                if(set_data.jankenWinner_ID == user1_id){
+                    map_selector_id = getJson_TD_1.team.team_id
+                }else if(set_data.jankenWinner_ID == user2_id){
+                    map_selector_id = getJson_TD_2.team.team_id
+                }
+            }else{
+                if(set_data["map"+(i+1)+"_mapSelector_id"] == user1_id){
+                    map_selector_id = getJson_TD_1.team.team_id
+                }else if(set_data["map"+(i+1)+"_mapSelector_id"] == user2_id){
+                    map_selector_id = getJson_TD_2.team.team_id
+                }
+            }
             request_json.maps[i] = {
                 "number" : (i+1),
+                "status" : "ready",
                 "name" : map_name_ENG[set_data["map"+(i+1)+"_mapPick"]-1],
+                "pick_team" : map_selector_id,
                 "teams" : [
                     {
                         "id" : getJson_GM.teams[0].id,
@@ -810,14 +841,29 @@ async function resultMessage_handler(client, data, order){
     if(order == 3){
         send_str += "\n"
     }else{
-        send_str += "  (Selected By "+"<@"+data["map"+order+"_mapSelector_id"]+">)\n"
+        send_str += "  (Selected By "+"<@"+data["map"+order+"_mapSelector_id"]+">"
+        if(data["map"+order+"_mapSelector_id"] == data.user1_id){
+            send_str += " "+ data.user1_TeamName +")\n"
+        }else if(data["map"+order+"_mapSelector_id"] == data.user2_id){
+            send_str += " "+ data.user2_TeamName +")\n"
+        }
     }
     if(data["map"+order+"_AtkDefPick"] == "Attacker"){
-        send_str += "Attacker Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+">\n"
-        send_str += "Defender Start -> <@"+data["map"+order+"_mapSelector_id"]+">\n"
+        if(data["map"+order+"_AtkDefSelector_id"] == data.user1_id){
+            send_str += "Attacker Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+"> "+ data.user1_TeamName +"\n"
+            send_str += "Defender Start -> <@"+data["map"+order+"_mapSelector_id"]+"> "+ data.user2_TeamName +"\n"
+        }else if(data["map"+order+"_AtkDefSelector_id"] == data.user2_id){
+            send_str += "Attacker Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+"> "+ data.user2_TeamName +"\n"
+            send_str += "Defender Start -> <@"+data["map"+order+"_mapSelector_id"]+"> "+ data.user1_TeamName +"\n"
+        }
     }else if(data["map"+order+"_AtkDefPick"] == "Defender"){
-        send_str += "Attacker Start -> <@"+data["map"+order+"_mapSelector_id"]+">\n"
-        send_str += "Defender Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+">\n"
+        if(data["map"+order+"_AtkDefSelector_id"] == data.user1_id){
+            send_str += "Attacker Start -> <@"+data["map"+order+"_mapSelector_id"]+"> "+ data.user2_TeamName +"\n"
+            send_str += "Defender Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+"> "+ data.user1_TeamName +"\n"
+        }else if(data["map"+order+"_AtkDefSelector_id"] == data.user2_id){
+            send_str += "Attacker Start -> <@"+data["map"+order+"_mapSelector_id"]+"> "+ data.user1_TeamName +"\n"
+            send_str += "Defender Start -> <@"+data["map"+order+"_AtkDefSelector_id"]+"> "+ data.user2_TeamName +"\n"
+        }
     }
     await sendCM(client,data.comChannel_ID,send_str)
 }
@@ -893,8 +939,20 @@ async function startJanken(interaction, client){
             }
         }
     }
+    let results_selct = await DB.DB_query("select * from `janken` where `comChannel_ID` = " + interaction.channelId)
+    if(results_selct.length == 0){
+        await interaction.reply(Err.error_handler(210))
+        return
+    }
+    let set_data = results_selct[0]
+    if(set_data.end_janken){
+        await interaction.reply(Err.error_handler(30))
+        return
+    }
     await interaction.reply("入力コマンド \n janken user1:<@"+user_1.id+"> "+"user2:<@"+user_2.id+"> MatchID:"+matchId+" BO:"+bo)
     if(_setFromMatchID){
+        set_data.user1_TeamName = getJson_GM.teams[0].team_name
+        set_data.user2_TeamName = getJson_GM.teams[1].team_name
         let send_mess = ""
         send_mess += "[MatchID] : "+getJson_GM.id+"\n"
         send_mess += "[BO] : "+getJson_GM.bo+"\n"
@@ -905,12 +963,6 @@ async function startJanken(interaction, client){
         send_mess += "    " + getJson_GM.teams[1].team_name + "  (id : " + getJson_GM.teams[1].id + " ) <@"+user_2.id+">\n"
         await sendCM(client, interaction.channelId, send_mess)
     }
-    let results_selct = await DB.DB_query("select * from `janken` where `comChannel_ID` = " + interaction.channelId)
-    if(results_selct.length == 0){
-        await interaction.reply(Err.error_handler(210))
-        return
-    }
-    let set_data = results_selct[0]
     set_data.user1_id = user_1.id
     set_data.user2_id = user_2.id
     set_data.match_id = matchId
@@ -993,7 +1045,9 @@ async function jankenInit(interaction){
 
     let initData = {
         "user1_id" : null,
+        "user1_TeamName" : null,
         "user2_id" : null,
+        "user2_TeamName" : null,
         "match_id" : null,
         "bo" : null,
         "streaming" : false,
@@ -1137,6 +1191,114 @@ async function sudoHandler(interaction, client){
     }
     await interaction.reply("complete").catch(console.error)
     return
+}
+
+async function matchResultSender(interaction, client){
+    let getJson_GM
+    const matchId = interaction.options.getString("マッチid")
+    if(matchId == null){
+        await interaction.reply(Err.error_handler(111))
+        return
+    }
+    if(matchId.indexOf("L") != -1 || matchId.indexOf("U") != -1){
+        getJson_GM = await API.getTournamentMatchData(matchId)
+    }else{
+        getJson_GM = await API.getGroupMatchData(matchId)
+    }
+    if(!getJson_GM){
+        await interaction.reply(Err.error_handler(115))
+        return
+    }
+    await interaction.reply("入力コマンド \n getMatchResult MatchID:"+matchId)
+    let resMessage = ""
+    resMessage += "[MatchID] : " + getJson_GM.id + "\n"
+    resMessage += "[Type] : " + getJson_GM.type + "\n"
+    if(getJson_GM.type == "group"){
+        resMessage += "[Group] : " + getJson_GM.group + "\n"
+    }else if(getJson_GM.type == "tournament"){
+        resMessage += "[Order] : " + getJson_GM.order + "\n"
+        resMessage += "[RoundLabel] : " + getJson_GM.round_label + "\n"
+    }
+    resMessage += "[BO] : " + getJson_GM.bo + "\n"
+    resMessage += "[Streaming] : " + getJson_GM.streaming + "\n"
+    resMessage += "[Enable] : " + getJson_GM.enable + "\n"
+    resMessage += "[Status] : " + getJson_GM.status + "\n"
+    resMessage += "[VS] : \n"
+    if(getJson_GM.teams[0].team_name == null){
+        resMessage += "    TBD  (id : TBD)\n"
+    }else{
+        resMessage += "    " + getJson_GM.teams[0].team_name + "  (id : " + getJson_GM.teams[0].id + ")\n"
+    }
+    resMessage += "              VS\n"
+    if(getJson_GM.teams[1].team_name == null){
+        resMessage += "    TBD  (id : TBD)\n"
+    }else{
+        resMessage += "    " + getJson_GM.teams[1].team_name + "  (id : " + getJson_GM.teams[1].id + ")\n"
+    }
+    resMessage += "[MatchWinner] : "
+    if(getJson_GM.winner == null){
+        resMessage += "TBD"
+    }else if(!getJson_GM.winner){
+        resMessage += "Draw"
+    }else{
+        if(getJson_GM.winner == getJson_GM.teams[0].id){
+            resMessage += getJson_GM.teams[0].team_name
+        }else if(getJson_GM.winner == getJson_GM.teams[1].id){
+            resMessage += getJson_GM.teams[1].team_name
+        }
+    }
+    resMessage += "\n"
+    for(let i=0; i<getJson_GM.bo; i++){
+        if(getJson_GM.maps[i].name == null){
+            resMessage += "[Map "+(i+1)+"] : TBD\n"
+            continue
+        }
+        resMessage += "[Map "+(i+1)+"] : " + getJson_GM.maps[i].name + "\n"
+        if(getJson_GM.maps[i].start_time != null){
+            let startTime = new Date(getJson_GM.maps[i].start_time)
+            console.log(startTime.toString())
+            resMessage += " |   (StartTime) : " + startTime.toLocaleDateString().slice(5) + " " + startTime.toLocaleTimeString().slice(0,-3) + "\n"
+        }
+        resMessage += " |   (Status) : " + getJson_GM.maps[i].status + "\n"
+        if(getJson_GM.maps[i].status == "none" || getJson_GM.maps[i].status == "upcoming"){
+            continue
+        }
+        if(getJson_GM.bo == DeciderMap_BO && i == getJson_GM.bo-1){
+            resMessage += " |   (MapPickedBy) : Decider\n"
+        }else{
+            if(getJson_GM.maps[i].pick_team == getJson_GM.teams[0].id){
+                resMessage += " |   (MapPickedBy) : " + getJson_GM.teams[0].team_name +"\n"
+            }else if(getJson_GM.maps[i].pick_team == getJson_GM.teams[1].id){
+                resMessage += " |   (MapPickedBy) : " + getJson_GM.teams[1].team_name +"\n"
+            }
+        }
+        if(getJson_GM.maps[i].teams[0].first_side == "attacker"){
+            resMessage += " |   (AttackerStart) : " + getJson_GM.maps[i].teams[0].team_name + "\n"
+            resMessage += " |   (DefenderStart) : " + getJson_GM.maps[i].teams[1].team_name + "\n"
+        }else if(getJson_GM.maps[i].teams[0].first_side == "defender"){
+            resMessage += " |   (AttackerStart) : " + getJson_GM.maps[i].teams[1].team_name + "\n"
+            resMessage += " |   (DefenderStart) : " + getJson_GM.maps[i].teams[0].team_name + "\n"
+        }
+        if(getJson_GM.maps[i].status == "ready" || getJson_GM.maps[i].status == "playing"){
+            resMessage += " |   (Winner) : TBD\n"
+            continue
+        }
+
+        resMessage += " |   (Round) : \n"
+        resMessage += " |         " + getJson_GM.maps[i].teams[0].get_round + " (" + getJson_GM.maps[i].teams[0].team_name + ")\n"
+        resMessage += " |          |\n"
+        resMessage += " |         " + getJson_GM.maps[i].teams[1].get_round + " (" + getJson_GM.maps[i].teams[1].team_name + ")\n"
+
+        resMessage += " |   (Winner) : "
+        if(getJson_GM.maps[i].winner == getJson_GM.teams[0].id){
+            resMessage += getJson_GM.teams[0].team_name
+        }else if(getJson_GM.maps[i].winner == getJson_GM.teams[1].id){
+            resMessage += getJson_GM.teams[1].team_name
+        }
+        resMessage += "\n"
+        
+    }
+    await sendCM(client, interaction.channelId, resMessage)
 }
 
 async function groupResultSender(interaction, client){

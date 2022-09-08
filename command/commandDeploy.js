@@ -46,6 +46,10 @@ const commands = [
             { name: 'su', value: 'su' },
             { name: 'exit', value: 'exit' },
         )),
+    new SlashCommandBuilder()
+    .setName('getmatchresult')
+    .setDescription('各試合の結果を表示します')
+    .addStringOption(option => option.setName('マッチid').setDescription('マッチidを入力してください'))
     //.addBooleanOption(option => option.setName('与奪').setDescription('trueの場合は権限付与、falseの場合は権限剥奪')),
     //new SlashCommandBuilder()
     //.setName('group_results')
