@@ -8,11 +8,17 @@ exports.error_handler = function(err_code){
         case 20:
             resStr = "[Err:20] チャンネル数で初期化かチャンネル指定で初期化どちらか指定してください"
             break;
+        case 30:
+            resStr = "[Err:30] じゃんけんデータ保存用データベースの初期化が行われていません"
+            break;
         case 100:
             resStr = "[Err:100] 指定Numberのデータベースが存在しません"
             break;
         case 110:
             resStr = "[Err:110] ユーザを指定しない場合MatchIDは必須です"
+            break;
+        case 111:
+            resStr = "[Err:111] MatchIDは必須です"
             break;
         case 115:
             resStr = "[Err:115] 指定されたマッチIDが存在していません。"
