@@ -34,7 +34,7 @@ const AtkDef_name = ["Attacker Start","Defender Start"]
 const AtkDef_status = ["Attacker","Defender"]
 const GrandFinal_matchId = "U-3-1"
 const GrandFinal_UpperId = "U-3-1-1"
-const OverTime_ON_matchID = ["L-2-1","U-3-1"]
+const OverTime_ON_matchID = ["U-3-1"]
 const DeciderMap_BO = 3
 
 exports.interction = async function(interaction, client){
@@ -744,7 +744,7 @@ async function PickComplete_handler(number, client){
                 send_str += "オーバータイム : **オフ**\n"
             }
             send_str += "全ラウンドをプレイ : オフ\n"
-            send_str += "対戦履歴 : オン\n"
+            send_str += "__**対戦履歴を非表示 : オフ**__\n"
             send_str += "----------------------"
         }
     }
@@ -1251,6 +1251,11 @@ async function matchResultSender(interaction, client){
     for(let i=0; i<getJson_GM.bo; i++){
         if(getJson_GM.maps[i].name == null){
             resMessage += "[Map "+(i+1)+"] : TBD\n"
+            if(getJson_GM.maps[i].start_time != null){
+                let startTime = new Date(getJson_GM.maps[i].start_time)
+                console.log(startTime.toString())
+                resMessage += " |   (StartTime) : " + startTime.toLocaleDateString().slice(5) + " " + startTime.toLocaleTimeString().slice(0,-3) + "\n"
+            }
             continue
         }
         resMessage += "[Map "+(i+1)+"] : " + getJson_GM.maps[i].name + "\n"
