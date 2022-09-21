@@ -1,0 +1,7 @@
+*.txt
+*.env
+*.env_dev
+*.env_kose
+*.env_realkose
+*.env_product
+node_modules/
