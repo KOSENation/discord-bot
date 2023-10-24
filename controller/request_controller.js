@@ -1,3 +1,7 @@
+/*
+    マッチ情報を取得するAPIへのリクエスト処理を定義
+*/
+
 const request = require("request-promise");
 const https = require('https');
 const path = require("path");
@@ -17,6 +21,7 @@ if(process.argv[2] == undefined || process.argv[2] == "dev"){
     require("dotenv").config({path: ENV_PATH})
 }
 
+//グループマッチのデータを取得
 exports.getGroupMatchData = async function(match_id){
     const options = {
         method : 'GET',
@@ -38,6 +43,7 @@ exports.getGroupMatchData = async function(match_id){
     return returnBody
 }
 
+//グループマッチのデータを保存
 exports.setGroupMatchData = async function(match_id, data){
     const options = {
         method : 'POST',
@@ -59,6 +65,7 @@ exports.setGroupMatchData = async function(match_id, data){
     return returnBody
 }
 
+//トーナメントマッチのデータを取得
 exports.getTournamentMatchData = async function(match_id){
     const options = {
         method : 'GET',
@@ -80,6 +87,7 @@ exports.getTournamentMatchData = async function(match_id){
     return returnBody
 }
 
+//トーナメントマッチのデータを保存
 exports.setTournamentMatchData = async function(match_id, data){
     const options = {
         method : 'POST',
@@ -101,6 +109,7 @@ exports.setTournamentMatchData = async function(match_id, data){
     return returnBody
 }
 
+//チームデータをIDから取得
 exports.getTeamDataByID = async function(team_id){
     const options = {
         method : 'GET',
@@ -122,6 +131,7 @@ exports.getTeamDataByID = async function(team_id){
     return returnBody
 }
 
+//グループの情報を取得
 exports.getGroupData = async function(){
     const options = {
         method : 'GET',

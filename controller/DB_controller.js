@@ -1,3 +1,7 @@
+/*
+    MySQLを操作するための関数を定義
+*/
+
 const mysql = require('mysql')
 const path = require("path")
 const util = require('util')

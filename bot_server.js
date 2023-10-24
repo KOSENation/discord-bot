@@ -16,6 +16,8 @@ const client = new Client({
         Partials.Reaction,
     ]
 })
+
+//環境によって環境変数を変更
 if(process.argv[2] == undefined || process.argv[2] == "dev"){
     const ENV_PATH = path.join(__dirname, '.env_dev');
     require("dotenv").config({path: ENV_PATH})
@@ -31,6 +33,7 @@ if(process.argv[2] == undefined || process.argv[2] == "dev"){
 }
 const token = process.env.TOKEN
 
+//ルートの定義
 var routes = require("./routes/bot_routes")
 routes(client)
 

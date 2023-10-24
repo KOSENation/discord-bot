@@ -1,3 +1,8 @@
+/*
+    bot_routes.js によって分岐された後の処理を定義
+    じゃんけんをDiscord上で行い、その結果からマップピックや先攻後攻を決定、APIに結果を投げる
+*/
+
 const { AttachmentBuilder, RichEmbed } = require('discord.js')
 const path = require("path")
 const Canvas = require('canvas');
@@ -37,6 +42,7 @@ const GrandFinal_UpperId = "U-3-1-1"
 const OverTime_ON_matchID = ["U-3-1"]
 const DeciderMap_BO = 3
 
+//登録したコマンドが実行された場合の処理
 exports.interction = async function(interaction, client){
     if(!interaction.isChatInputCommand()) return;
     console.log("interactionCreate")
@@ -72,6 +78,7 @@ exports.interction = async function(interaction, client){
 
 }
 
+//メッセージに対してリアクションがついた場合の処理
 exports.ReactionAdd = async function(MessageReaction, user, client){
     if(user.bot) return
     console.log("messageReactionAdd")
@@ -1366,6 +1373,8 @@ async function createGroupResultImage(group_name,teams){
     return attachment
 }
 
+//サーバにメンバーが追加された場合の処理
+//基画像にメンバーのアイコンを被せ、Welcomeメッセージを送信する
 exports.addedMember = async function(guildMember){
     console.log("added Member")
     const channel = await guildMember.guild.channels.cache.find(channel => channel.name === process.env.WELCOME_CHANNEL)
